@@ -1,0 +1,88 @@
+#include <stdio.h>
+#include <functional>
+
+#ifdef __cplusplus
+extern "C" {
+#include <libavutil/avassert.h>
+#include <libavutil/channel_layout.h>
+#include <libavutil/opt.h>
+#include <libavutil/mathematics.h>
+#include <libavutil/timestamp.h>
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
+#include <libswscale/swscale.h>
+#include <libswresample/swresample.h>
+#include <libavutil/time.h>
+#include <libavutil/imgutils.h>
+}
+#endif
+
+#include "RenderView.h"
+#include "SDLApp.h"
+#include "Timer.h"
+#include "log.h"
+#include "AudioPlay.h"
+#include "FFmpegPlayer.h"
+
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#include <emscripten/bind.h>
+#include <emscripten/wasm_worker.h>
+#include "emscripten/emscripten_mainloop_stub.h"
+
+using namespace emscripten;
+#endif
+
+#if !SDL_VERSION_ATLEAST(2, 0, 17)
+#error This backend requires SDL 2.0.17+ because of SDL_RenderGeometry() function
+#endif
+
+struct RenderPairData
+{
+    RenderItem *item = nullptr;
+    RenderView *view = nullptr;
+};
+
+static void FN_DecodeImage_Cb(unsigned char* data, int w, int h, void *userdata)
+{
+    RenderPairData *cbData = (RenderPairData*)userdata;
+    if (!cbData->item) {
+        cbData->item = cbData->view->createRGB24Texture(w, h);
+    }
+
+    cbData->view->updateTexture(cbData->item, data, h);
+}
+
+int main(int argc, char **argv)
+{
+#ifdef __EMSCRIPTEN_PTHREADS__
+    SDL_Log("__EMSCRIPTEN_PTHREADS__");
+#endif
+    const char* fn = "input.mp4";
+
+    SDLApp a;
+    RenderView view;
+    view.initSDL();
+
+    Timer ti;
+    std::function<void()> cb = bind(&RenderView::onRefresh, &view);
+    ti.start(&cb, 30);
+
+    RenderPairData *cbData = new RenderPairData;
+    cbData->view = &view;
+
+    FFmpegPlayer player;
+    player.setFilePath(fn);
+    player.setImageCb(FN_DecodeImage_Cb, cbData);
+    if (player.initPlayer() != 0) {
+        return -1;
+    }
+
+    ff_log_line("FFmpegPlayer init success");
+
+    player.start();
+
+    a.exec();
+
+    return 0;
+}
