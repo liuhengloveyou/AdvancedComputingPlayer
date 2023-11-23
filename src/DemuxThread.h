@@ -1,16 +1,15 @@
-#ifndef DEMUXTHREAD_H
-#define DEMUXTHREAD_H
-
-#include "ThreadBase.h"
+#pragma once
 
 #include <string>
 
-struct FFmpegPlayerCtx;
+#include "ThreadBase.h"
+#include "PlayerCtx.h"
+
 
 class DemuxThread : public ThreadBase
 {
 public:
-    DemuxThread(FFmpegPlayerCtx *ctx);
+    DemuxThread(PlayerCtx *ctx);
     ~DemuxThread();
     
     int init();
@@ -20,7 +19,6 @@ private:
     int stream_open(int media_type);
 
 private:
-    FFmpegPlayerCtx *playerCtx = nullptr;
+    PlayerCtx *playerCtx = nullptr;
 };
 
-#endif // DEMUXTHREAD_H

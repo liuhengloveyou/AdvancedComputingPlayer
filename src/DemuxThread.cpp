@@ -1,11 +1,13 @@
-#include "DemuxThread.h"
-
 #include <functional>
 
 #include "log.h"
 #include "FFmpegPlayer.h"
+#include "DemuxThread.h"
 
-DemuxThread::DemuxThread(FFmpegPlayerCtx *ctx)
+#define MAX_AUDIOQ_SIZE (5 * 16 * 1024)
+#define MAX_VIDEOQ_SIZE (5 * 256 * 1024)
+
+DemuxThread::DemuxThread(PlayerCtx *ctx)
 {
     playerCtx = ctx;
 }
@@ -41,45 +43,15 @@ int DemuxThread::init()
 }
 
 DemuxThread::~DemuxThread()
-{
-    if (playerCtx->formatCtx) {
-        avformat_close_input(&playerCtx->formatCtx);
-        playerCtx->formatCtx = nullptr;
-    }
-
-    if (playerCtx->aCodecCtx) {
-        avcodec_free_context(&playerCtx->aCodecCtx);
-        playerCtx->aCodecCtx = nullptr;
-    }
-
-    if (playerCtx->vCodecCtx) {
-        avcodec_free_context(&playerCtx->vCodecCtx);
-        playerCtx->vCodecCtx = nullptr;
-    }
-
-    if (playerCtx->swr_ctx) {
-        swr_free(&playerCtx->swr_ctx);
-        playerCtx->swr_ctx = nullptr;
-    }
-
-    if (playerCtx->sws_ctx) {
-        sws_freeContext(playerCtx->sws_ctx);
-        playerCtx->sws_ctx = nullptr;
-    }
+{  
 }
 
 void DemuxThread::run()
 {
     AVPacket *packet = av_packet_alloc();
 
-    for(;;) {
-        if(m_stop) {
-            ff_log_line("request quit while decode_loop");
-            break;
-        }
-
-        // begin seek
-        if (playerCtx->seek_req) {
+    while(!m_stop) {
+        if (playerCtx->seek_req) { // begin seek
             int stream_index= -1;
             int64_t seek_target = playerCtx->seek_pos;
 
@@ -98,11 +70,11 @@ void DemuxThread::run()
             } else {
                 if(playerCtx->audioStream >= 0) {
                     playerCtx->audioq.packetFlush();
-                    playerCtx->flush_actx = true;
+                    playerCtx->flush_audio_ctx = true;
                 }
                 if (playerCtx->videoStream >= 0) {
                     playerCtx->videoq.packetFlush();
-                    playerCtx->flush_vctx = true;
+                    playerCtx->flush_video_ctx = true;
                 }
             }
 
@@ -129,16 +101,19 @@ void DemuxThread::run()
         }
     }
 
+    av_packet_free(&packet);
+
     while (!m_stop) {
         SDL_Delay(100);
     }
 
-    av_packet_free(&packet);
-
+    /*
     SDL_Event event;
     event.type = FF_QUIT_EVENT;
     event.user.data1 = playerCtx;
     SDL_PushEvent(&event);
+    */
+
 
     return;
 }
@@ -190,6 +165,7 @@ int DemuxThread::stream_open(int media_type)
         playerCtx->video_st    = formatCtx->streams[stream_index];
         playerCtx->frame_timer = (double)av_gettime() / 1000000.0;
         playerCtx->frame_last_delay = 40e-3;
+        /*
         playerCtx->sws_ctx = sws_getContext(
                     codecCtx->width,
                     codecCtx->height,
@@ -201,7 +177,7 @@ int DemuxThread::stream_open(int media_type)
                     NULL,
                     NULL,
                     NULL
-                    );
+                    );*/
         break;
     default:
         break;

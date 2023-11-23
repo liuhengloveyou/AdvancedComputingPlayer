@@ -7,20 +7,15 @@
 #define SDL_WINDOW_DEFAULT_WIDTH  (1280)
 #define SDL_WINDOW_DEFAULT_HEIGHT (720)
 
-static SDL_Rect makeRect(int x, int y, int w, int h)
-{
-    SDL_Rect r;
-    r.x = x;
-    r.y = y;
-    r.w = w;
-    r.h = h;
-
-    return r;
-}
 
 RenderView::RenderView()
 {
-
+    /*
+    rect.x = 0;
+    rect.y = 0;
+    rect.w = SDL_WINDOW_DEFAULT_WIDTH;
+    rect.h = SDL_WINDOW_DEFAULT_HEIGHT;
+    */
 }
 
 void RenderView::setNativeHandle(void *handle)
@@ -28,13 +23,13 @@ void RenderView::setNativeHandle(void *handle)
     m_nativeHandle = handle;
 }
 
-int RenderView::initSDL(SDL_Window** window, SDL_Renderer** renderer)
+int RenderView::init()
 {
     if (m_nativeHandle) {
         m_sdlWindow = SDL_CreateWindowFrom(m_nativeHandle);
     } else {
         SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
-        m_sdlWindow = SDL_CreateWindow("AdvancedComputingPlayer",
+        m_sdlWindow = SDL_CreateWindow(u8"先进计算播放器",
                                        SDL_WINDOWPOS_CENTERED,
                                        SDL_WINDOWPOS_CENTERED,
                                        SDL_WINDOW_DEFAULT_WIDTH,
@@ -43,115 +38,44 @@ int RenderView::initSDL(SDL_Window** window, SDL_Renderer** renderer)
     }
 
     if (!m_sdlWindow) {
+        SDL_LogError(1, "SDL_CreateWindow error");
         return -1;
     }
 
     m_sdlRender = SDL_CreateRenderer(m_sdlWindow, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if (!m_sdlRender) {
+        SDL_LogError(1, "SDL_CreateRenderer error");
         return -1;
     }
 
     SDL_RenderSetLogicalSize(m_sdlRender, SDL_WINDOW_DEFAULT_WIDTH, SDL_WINDOW_DEFAULT_HEIGHT);
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
 
-    *window = m_sdlWindow;
-    *renderer = m_sdlRender;
+    Uint32 pixformat = SDL_PIXELFORMAT_IYUV;
+    m_sdlTexture = SDL_CreateTexture(m_sdlRender, pixformat, SDL_TEXTUREACCESS_STREAMING, SDL_WINDOW_DEFAULT_WIDTH, SDL_WINDOW_DEFAULT_HEIGHT);
+    if (!m_sdlTexture) {
+        SDL_LogError(1, "SDL_CreateTexture error");
+        return -1;
+    }
 
     return 0;
 }
 
-RenderItem *RenderView::createRGB24Texture(int w, int h)
+void RenderView::update(std::shared_ptr<MyPicture> vp)
 {
-    m_updateMutex.lock();
-
-    /*
-     pixformat = SDL_PIXELFORMAT_IYUV;
-
-    texture = SDL_CreateTexture(renderer, pixformat, SDL_TEXTUREACCESS_STREAMING, w, h);
-
-    if (!texture)
-
-    {
-
-        printf("can not create texture: %s\n", SDL_GetError());
-
-        return -1;
-
-    }
-
-    */
-    RenderItem *ret = new RenderItem;
-    SDL_Texture *tex = SDL_CreateTexture(m_sdlRender, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STREAMING, w, h);
-    ret->texture = tex;
-    ret->srcRect = makeRect(0, 0, w, h);
-    ret->dstRect = makeRect(0, 0, SDL_WINDOW_DEFAULT_WIDTH, SDL_WINDOW_DEFAULT_HEIGHT);
-
-    m_items.push_back(ret);
-
-    m_updateMutex.unlock();
-
-    return ret;
-}
-
-void RenderView::updateTexture(RenderItem *item, unsigned char *pixelData, int rows)
-{
-    printf("RenderView::updateTexture>>>>>>");
-    /*
+    SDL_UpdateYUVTexture(m_sdlTexture, NULL,
+        vp->frame_->data[0], vp->frame_->linesize[0],
+        vp->frame_->data[1], vp->frame_->linesize[1],
+        vp->frame_->data[2], vp->frame_->linesize[2]);
     
-     // SDL 刷新
-
-        SDL_UpdateYUVTexture(texture, NULL,
-
-                             frame->data[0], frame->linesize[0],
-
-                             frame->data[1], frame->linesize[1],
-
-                             frame->data[2], frame->linesize[2]);
-
-        rect.x = 0;
-
-        rect.y = 0;
-
-        rect.w = width;
-
-        rect.h = height;
-
-
-
-        SDL_RenderClear(renderer);                      // 清空渲染器内容
-
-        SDL_RenderCopy(renderer, texture, NULL, &rect); // 将纹理复制到渲染器
-
-        SDL_RenderPresent(renderer);
-
+    /*
+    rect.x = 0;
+    rect.y = 0;
+    rect.w = vp->width_;
+    rect.h = vp->height_;
     */
-    m_updateMutex.lock();
-
-    void *pixels = nullptr;
-    int pitch;
-    SDL_LockTexture(item->texture, NULL, &pixels, &pitch);
-    memcpy(pixels, pixelData, pitch * rows);
-    SDL_UnlockTexture(item->texture);
-
-    std::list<RenderItem *>::iterator iter;
-    SDL_RenderClear(m_sdlRender);
-    for (iter = m_items.begin(); iter != m_items.end(); iter++)
-    {
-        RenderItem *item = *iter;
-        SDL_RenderCopy(m_sdlRender, item->texture, &item->srcRect, &item->dstRect);
-    }
-
-    m_updateMutex.unlock();
-}
-
-void RenderView::onRefresh()
-{
-    printf("RenderView::onRefresh>>>>>>");
-    m_updateMutex.lock();
-
-    if (m_sdlRender) {
-        SDL_RenderPresent(m_sdlRender);
-    }
-
-    m_updateMutex.unlock();
+    
+    //SDL_RenderClear(m_sdlRender); // 清空渲染器内容
+    SDL_RenderCopy(m_sdlRender, m_sdlTexture, NULL, NULL); // 将纹理复制到渲染器
+    //SDL_RenderPresent(m_sdlRender); // SDL渲染
 }

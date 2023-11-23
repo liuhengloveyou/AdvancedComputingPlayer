@@ -75,6 +75,9 @@
     <ClCompile Include="..\..\thirdparty\imgui\backends\imgui_impl_sdlrenderer2.cpp">
       <Filter>imgui</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\PlayerCtx.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\AudioDecodeThread.h">
@@ -90,9 +93,6 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\log.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\PacketQueue.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\RenderView.h">
@@ -133,6 +133,12 @@
     </ClInclude>
     <ClInclude Include="..\..\thirdparty\imgui\backends\imgui_impl_sdlrenderer2.h">
       <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\PacketQueue.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\PlayerCtx.h">
+      <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

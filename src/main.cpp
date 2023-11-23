@@ -42,59 +42,39 @@ using namespace emscripten;
 #error This backend requires SDL 2.0.17+ because of SDL_RenderGeometry() function
 #endif
 
-struct RenderPairData
-{
-    RenderItem *item = nullptr;
-    RenderView *view = nullptr;
-};
-
-static void FN_DecodeImage_Cb(unsigned char* data, int w, int h, void *userdata)
-{
-    printf("@@@@@@@@@@@@@@@@@@@FN_DecodeImage_Cb>>>>>>\n\n");
-
-    RenderPairData *cbData = (RenderPairData*)userdata;
-    if (!cbData->item) {
-        cbData->item = cbData->view->createRGB24Texture(w, h);
-    }
-
-    cbData->view->updateTexture(cbData->item, data, h);
-}
-
 
 // Main code
-int main(int, char **)
+int main(int argc, char **argv)
 {
-    SDL_Renderer* renderer;
-    SDL_Window* window;
-
 #ifdef __EMSCRIPTEN_PTHREADS__
     SDL_Log("__EMSCRIPTEN_PTHREADS__");
 #endif
+
     const char* fn = "D:\\a.mp4";
 
     SDLApp app;
     RenderView view;
-    view.initSDL(&window, &renderer);
+    view.init();
 
     /*
-    *  Timer ti;
+    Timer ti;
     std::function<void()> cb = bind(&RenderView::onRefresh, &view);
     ti.start(&cb, 30);
-    
+
+    //RenderPairData *cbData = new RenderPairData;
+    //cbData->view = &view;
     */
-   
 
-    RenderPairData *cbData = new RenderPairData;
-    cbData->view = &view;
-
-    FFmpegPlayer player;
-    if (player.initPlayer(fn, FN_DecodeImage_Cb, cbData) != 0) {
+    FFmpegPlayer player(&view);
+    if (player.init(fn) != 0) {
         return -1;
     }
 
     ff_log_line("FFmpegPlayer init success");
     player.start();
 
+    SDL_Renderer* renderer = view.getRender();
+    SDL_Window* window = view.getWindow();
 
     // Load Fonts
     // - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
@@ -131,13 +111,12 @@ int main(int, char **)
     // Our state
     bool show_demo_window = false;
     bool show_another_window = false;
-    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-
-
+    
     // Start Draw graphics with SDL
-    SDL_SetRenderDrawColor(renderer, (Uint8)(clear_color.x * 255), (Uint8)(clear_color.y * 255), (Uint8)(clear_color.z * 255), (Uint8)(clear_color.w * 255));
+    ImVec4 clear_color = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+    SDL_SetRenderDrawColor(renderer, (Uint8)(clear_color.x), (Uint8)(clear_color.y), (Uint8)(clear_color.z), (Uint8)(clear_color.w));
     SDL_RenderClear(renderer);
-
+    
     // Main loop
     bool done = false;
 #ifdef __EMSCRIPTEN__
@@ -148,8 +127,8 @@ int main(int, char **)
     while (!done)
 #endif
     {
-   
-
+        // SDL_RenderClear(renderer);
+        
         // Poll and handle events (inputs, window resize, etc.)
         // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
         // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application, or clear/overwrite your copy of the mouse data.
@@ -160,14 +139,16 @@ int main(int, char **)
             done = true;
         }
         
-        SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
-        //SDL_SetRenderDrawColor(renderer, (Uint8)(clear_color.x * 255), (Uint8)(clear_color.y * 255), (Uint8)(clear_color.z * 255), (Uint8)(clear_color.w * 255));
+        //player.onRefresh();
+
+        /*
         static SDL_Point points[4] = {
             {320, 200},
             {300, 240},
             {340, 240},
             {320, 200}
         };
+        SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
         SDL_RenderDrawLines(renderer, points, 4);
 
         static SDL_Point points2[4] = {
@@ -176,9 +157,10 @@ int main(int, char **)
             {340 - 80, 240},
             {320 - 80, 200}
         };
+        SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
         SDL_RenderDrawLines(renderer, points2, 4);
+        */
 
-       
         // Start the Dear ImGui frame
         ImGui_ImplSDLRenderer2_NewFrame();
         ImGui_ImplSDL2_NewFrame();
@@ -195,21 +177,21 @@ int main(int, char **)
 
             ImGui::Begin("先进计算播放器", NULL,  ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar); // Create a window called "Hello, world!" and append into it.
 
-            //ImGui::Text("This is some useful text.");          // Display some text (you can use a format strings too)
-            //ImGui::Checkbox("Demo Window", &show_demo_window); // Edit bools storing our window open/close state
-            //ImGui::Checkbox("Another Window", &show_another_window);
+            ImGui::Text("This is some useful text.");          // Display some text (you can use a format strings too)
+            ImGui::Checkbox("Demo Window", &show_demo_window); // Edit bools storing our window open/close state
+            ImGui::Checkbox("Another Window", &show_another_window);
 
             char title[128] = { 0 };
             sprintf(title, "%.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
             ImGui::SliderFloat(title, &f, 0.0f, 1.0f);             // Edit 1 float using a slider from 0.0f to 1.0f
-            //ImGui::ColorEdit3("clear color", (float *)&clear_color); // Edit 3 floats representing a color
+            ImGui::ColorEdit3("clear color", (float *)&clear_color); // Edit 3 floats representing a color
 
-            //if (ImGui::Button("Button")) // Buttons return true when clicked (most widgets return true when edited/activated)
-            //    counter++;
-            //ImGui::SameLine();
-            //ImGui::Text("counter = %d", counter);
+            if (ImGui::Button("Button")) // Buttons return true when clicked (most widgets return true when edited/activated)
+                counter++;
+            ImGui::SameLine();
+            ImGui::Text("counter = %d", counter);
 
-            // ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
             ImGui::End();
         }
 
@@ -227,8 +209,8 @@ int main(int, char **)
         ImGui::Render();
 
         SDL_RenderSetScale(renderer, io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
-        SDL_SetRenderDrawColor(renderer, (Uint8)(clear_color.x * 255), (Uint8)(clear_color.y * 255), (Uint8)(clear_color.z * 255), (Uint8)(clear_color.w * 255));
-        //SDL_RenderClear(renderer);
+        // SDL_SetRenderDrawColor(renderer, (Uint8)(clear_color.x * 255), (Uint8)(clear_color.y * 255), (Uint8)(clear_color.z * 255), (Uint8)(clear_color.w * 255));
+        // SDL_RenderClear(renderer);
         ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData());
         SDL_RenderPresent(renderer);
     }

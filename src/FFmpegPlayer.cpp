@@ -1,5 +1,5 @@
-#include "FFmpegPlayer.h"
-
+ï»¿#include "FFmpegPlayer.h"
+#include "PlayerCtx.h"
 #include "DemuxThread.h"
 #include "VideoDecodeThread.h"
 #include "AudioDecodeThread.h"
@@ -9,18 +9,18 @@
 
 #include <functional>
 
-static double get_audio_clock(FFmpegPlayerCtx *is)
+static double get_audio_clock(PlayerCtx &is)
 {
     double pts;
     int hw_buf_size, bytes_per_sec, n;
 
-    pts = is->audio_clock;
-    hw_buf_size = is->audio_buf_size - is->audio_buf_index;
+    pts = is.audio_clock;
+    hw_buf_size = is.audio_buf_size - is.audio_buf_index;
     bytes_per_sec = 0;
-    n = is->aCodecCtx->ch_layout.nb_channels * 2;
+    n = is.aCodecCtx->ch_layout.nb_channels * 2;
 
-    if(is->audio_st) {
-        bytes_per_sec = is->aCodecCtx->sample_rate * n;
+    if(is.audio_st) {
+        bytes_per_sec = is.aCodecCtx->sample_rate * n;
     }
 
     if (bytes_per_sec) {
@@ -40,17 +40,9 @@ static Uint32 sdl_refresh_timer_cb(Uint32 /*interval*/, void *opaque)
     return 0;
 }
 
-static void schedule_refresh(FFmpegPlayerCtx *is, int delay)
+static void schedule_refresh(PlayerCtx *is, int delay)
 {
-    SDL_AddTimer(delay, sdl_refresh_timer_cb, is);
-}
-
-static void video_display(FFmpegPlayerCtx *is)
-{
-    VideoPicture *vp =  &is->pictq[is->pictq_rindex];
-    if (vp->bmp && is->imgCb) {
-        is->imgCb(vp->bmp->data[0], is->vCodecCtx->width, is->vCodecCtx->height, is->cbData);
-    }
+    // SDL_AddTimer(delay, sdl_refresh_timer_cb, is);
 }
 
 static void FN_Audio_Cb(void *userdata, Uint8 *stream, int len)
@@ -59,7 +51,7 @@ static void FN_Audio_Cb(void *userdata, Uint8 *stream, int len)
     dt->getAudioData(stream, len);
 }
 
-void stream_seek(FFmpegPlayerCtx *is, int64_t pos, int rel)
+void stream_seek(PlayerCtx *is, int64_t pos, int rel)
 {
     if (!is->seek_req) {
         is->seek_pos = pos;
@@ -68,38 +60,35 @@ void stream_seek(FFmpegPlayerCtx *is, int64_t pos, int rel)
     }
 }
 
-FFmpegPlayer::FFmpegPlayer()
+FFmpegPlayer::FFmpegPlayer(RenderView *render)
 {
-
+    m_render = render;
 }
 
-int FFmpegPlayer::initPlayer(const char *filePath, Image_Cb cb, void *userData)
+FFmpegPlayer::~FFmpegPlayer()
+{
+}
+
+int FFmpegPlayer::init(const char *filePath)
 {
     if (!filePath || strlen(filePath) >= 1024) {
         return -1;
-    }
-    if (!cb || !userData) {
-        return -1;
-    }
-    
+    }   
     m_filePath = filePath;
-    playerCtx.imgCb  = cb;
-    playerCtx.cbData = userData;
 
     // init ctx
-    playerCtx.init();
     strncpy(playerCtx.filename, m_filePath.c_str(), m_filePath.size());
 
-    // ½â·â±ÕÏß³Ì
+    // è§£å°é—­çº¿ç¨‹
     m_demuxThread = new DemuxThread(&playerCtx);
     if (m_demuxThread->init() != 0) {
         ff_log_line("DemuxThread init Failed.");
         return -1;
     }
 
-    // ÒôÆµ½âÂëÏß³Ì
+    // éŸ³é¢‘è§£ç çº¿ç¨‹
     m_audioDecodeThread = new AudioDecodeThread(&playerCtx);
-    // ÊÓÆµ½âÂëÏß³Ì
+    // è§†é¢‘è§£ç çº¿ç¨‹
     m_videoDecodeThread = new VideoDecodeThread(&playerCtx);
 
     // render audio params
@@ -118,30 +107,23 @@ int FFmpegPlayer::initPlayer(const char *filePath, Image_Cb cb, void *userData)
     }
 
     // install player event
-    auto refreshEvent = [this](SDL_Event *e) {
-        onRefreshEvent(e);
-    };
-
-    auto keyEvent = [this](SDL_Event *e) {
+    sdlApp->registerEvent(SDL_KEYDOWN, [this](SDL_Event* e) {
         onKeyEvent(e);
-    };
-
-    sdlApp->registerEvent(FF_REFRESH_EVENT, refreshEvent);
-    sdlApp->registerEvent(SDL_KEYDOWN, keyEvent);
-
+    });
+    
     return 0;
 }
 
 void FFmpegPlayer::start()
 {
+    m_stop = false;
+
     m_demuxThread->start();
     m_videoDecodeThread->start();
     m_audioDecodeThread->start();
     m_audioPlay->start();
 
-    schedule_refresh(&playerCtx, 40);
-
-    m_stop = false;
+    // schedule_refresh(&playerCtx, 40);  
 }
 
 #define FREE(x) \
@@ -183,10 +165,6 @@ void FFmpegPlayer::stop()
         FREE(m_demuxThread);
     }
     ff_log_line("demux thread finished.");
-
-    ff_log_line("player ctx clean...");
-    playerCtx.fini();
-    ff_log_line("player ctx finished.");
 }
 
 void FFmpegPlayer::pause(PauseState state)
@@ -197,65 +175,48 @@ void FFmpegPlayer::pause(PauseState state)
     playerCtx.frame_timer = av_gettime() / 1000000.0;
 }
 
-void FFmpegPlayer::onRefreshEvent(SDL_Event *e)
+void FFmpegPlayer::onRefresh()
 {
     if (m_stop) {
         return;
     }
 
-    FFmpegPlayerCtx *is = (FFmpegPlayerCtx *)e->user.data1;
-    VideoPicture *vp;
     double actual_delay, delay, sync_threshold, ref_clock, diff;
-
-    if(is->video_st) {
-        if(is->pictq_size == 0) {
-            schedule_refresh(is, 1);
-        } else {
-            vp = &is->pictq[is->pictq_rindex];
-
-            delay = vp->pts - is->frame_last_pts;
-
-            if(delay <= 0 || delay >= 1.0) {
-                delay = is->frame_last_delay;
-            }
-
-            // save for next time
-            is->frame_last_delay = delay;
-            is->frame_last_pts = vp->pts;
-
-            ref_clock = get_audio_clock(is);
-            diff = vp->pts - ref_clock;
-
-            sync_threshold = (delay > AV_SYNC_THRESHOLD) ? delay : AV_SYNC_THRESHOLD;
-            if (fabs(diff) < AV_NOSYNC_THRESHOLD) {
-                if (diff <= -sync_threshold) {
-                    delay = 0;
-                } else if (diff >= sync_threshold) {
-                    delay = 2 * delay;
-                }
-            }
-
-            is->frame_timer += delay;
-            actual_delay = is->frame_timer - (av_gettime() / 1000000.0);
-            if (actual_delay < 0.010) {
-                actual_delay = 0.010;
-            }
-
-            schedule_refresh(is, (int)(actual_delay * 1000 + 0.5));
-
-            video_display(is);
-
-            if (++is->pictq_rindex == VIDEO_PICTURE_QUEUE_SIZE) {
-                is->pictq_rindex = 0;
-            }
-            SDL_LockMutex(is->pictq_mutex);
-            is->pictq_size--;
-            SDL_CondSignal(is->pictq_cond);
-            SDL_UnlockMutex(is->pictq_mutex);
-        }
-    } else {
-        schedule_refresh(is, 100);
+   
+    std::shared_ptr<MyPicture> vp = playerCtx.getPicture();
+    if (!vp) {
+        return;
     }
+
+    delay = vp->pts_ - playerCtx.frame_last_pts;
+    
+    if(delay <= 0 || delay >= 1.0) {
+        delay = playerCtx.frame_last_delay;
+    }
+
+    // save for next time
+    playerCtx.frame_last_delay = delay;
+    playerCtx.frame_last_pts = vp->pts_;
+    
+    ref_clock = get_audio_clock(playerCtx);
+    diff = vp->pts_ - ref_clock;
+
+    sync_threshold = (delay > AV_SYNC_THRESHOLD) ? delay : AV_SYNC_THRESHOLD;
+    if (fabs(diff) < AV_NOSYNC_THRESHOLD) {
+        if (diff <= -sync_threshold) {
+            delay = 0;
+        } else if (diff >= sync_threshold) {
+            delay = 2 * delay;
+        }
+    }
+
+    playerCtx.frame_timer += delay;
+    actual_delay = playerCtx.frame_timer - (av_gettime() / 1000000.0);
+    if (actual_delay < 0.010) {
+        actual_delay = 0.010;
+    }
+    
+    m_render->update(vp);
 }
 
 void FFmpegPlayer::onKeyEvent(SDL_Event *e)
@@ -276,12 +237,12 @@ void FFmpegPlayer::onKeyEvent(SDL_Event *e)
         goto do_seek;
 do_seek:
         if (true) {
-            pos = get_audio_clock(&playerCtx);
+            pos = get_audio_clock(playerCtx);
             pos += incr;
             if (pos < 0) {
                 pos = 0;
             }
-            ff_log_line("seek to %lf v:%lf a:%lf", pos, get_audio_clock(&playerCtx), get_audio_clock(&playerCtx));
+            ff_log_line("seek to %lf v:%lf a:%lf", pos, get_audio_clock(playerCtx), get_audio_clock(playerCtx));
             stream_seek(&playerCtx, (int64_t)(pos * AV_TIME_BASE), (int)incr);
         }
         break;

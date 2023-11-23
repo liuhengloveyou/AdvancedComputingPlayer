@@ -42,12 +42,11 @@ SDLApp::SDLApp()
 int SDLApp::exec()
 {
     SDL_Event event;
-    //for (;;)
+
     while (SDL_PollEvent(&event))
+    // while (SDL_WaitEventTimeout(&event, SDL_APP_EVENT_TIMEOUT))
     {
         ImGui_ImplSDL2_ProcessEvent(&event);
-        // SDL_WaitEventTimeout(&event, SDL_APP_EVENT_TIMEOUT);
-
         switch (event.type)
         {
         case SDL_QUIT:

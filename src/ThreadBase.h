@@ -1,5 +1,4 @@
-#ifndef THREADBASE_H
-#define THREADBASE_H
+#pragma once
 
 #include <thread>
 #include <atomic>
@@ -12,7 +11,6 @@ public:
     virtual void run() = 0;
 
     void stop();
-
     void start();
 
 private:
@@ -22,4 +20,3 @@ protected:
     std::atomic<bool> m_stop; // = false;
 };
 
-#endif // THREADBASE_H

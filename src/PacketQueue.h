@@ -1,5 +1,4 @@
-#ifndef PACKETQUEUE_H
-#define PACKETQUEUE_H
+#pragma once
 
 #include <list>
 #include <atomic>
@@ -17,11 +16,8 @@ public:
     PacketQueue();
 
     int packetPut(AVPacket *pkt);
-
     int packetGet(AVPacket *pkt, std::atomic<bool> &quit);
-
     void packetFlush();
-
     int packetSize();
 
 private:
@@ -31,4 +27,3 @@ private:
     SDL_cond *cond = nullptr;
 };
 
-#endif // PACKETQUEUE_H

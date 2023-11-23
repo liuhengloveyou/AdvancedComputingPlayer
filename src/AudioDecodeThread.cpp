@@ -3,15 +3,15 @@
 #include "FFmpegPlayer.h"
 #include "log.h"
 
-AudioDecodeThread::AudioDecodeThread(FFmpegPlayerCtx *ctx)
+AudioDecodeThread::AudioDecodeThread(PlayerCtx *ctx)
+    :playerCtx(ctx)
 {
-    is = ctx;
 }
 
 void AudioDecodeThread::getAudioData(unsigned char *stream, int len)
 {
     // decoder is not ready or in pause state, output silence
-    if (!is->aCodecCtx || is->pause == PAUSE) {
+    if (!playerCtx->aCodecCtx || playerCtx->pause == PAUSE) {
         memset(stream, 0, len);
         return;
     }
@@ -20,25 +20,25 @@ void AudioDecodeThread::getAudioData(unsigned char *stream, int len)
     double pts;
 
     while(len > 0) {
-        if (is->audio_buf_index >= is->audio_buf_size) {
-            audio_size = audio_decode_frame(is, &pts);
+        if (playerCtx->audio_buf_index >= playerCtx->audio_buf_size) {
+            audio_size = audio_decode_frame(playerCtx, &pts);
             if (audio_size < 0) {
-                is->audio_buf_size = 1024;
-                memset(is->audio_buf, 0, is->audio_buf_size);
+                playerCtx->audio_buf_size = 1024;
+                memset(playerCtx->audio_buf, 0, playerCtx->audio_buf_size);
             } else {
-                is->audio_buf_size = audio_size;
+                playerCtx->audio_buf_size = audio_size;
             }
-            is->audio_buf_index = 0;
+            playerCtx->audio_buf_index = 0;
         }
 
-        len1 = is->audio_buf_size - is->audio_buf_index;
+        len1 = playerCtx->audio_buf_size - playerCtx->audio_buf_index;
         if (len1 > len)
             len1 = len;
 
-        memcpy(stream, (uint8_t *)is->audio_buf + is->audio_buf_index, len1);
+        memcpy(stream, (uint8_t *)playerCtx->audio_buf + playerCtx->audio_buf_index, len1);
         len -= len1;
         stream += len1;
-        is->audio_buf_index += len1;
+        playerCtx->audio_buf_index += len1;
     }
 }
 
@@ -47,7 +47,7 @@ void AudioDecodeThread::run()
     // do nothing
 }
 
-int AudioDecodeThread::audio_decode_frame(FFmpegPlayerCtx *is, double *pts_ptr)
+int AudioDecodeThread::audio_decode_frame(PlayerCtx *is, double *pts_ptr)
 {
     int len1, data_size = 0, n;
     AVPacket *pkt = is->audio_pkt;
@@ -116,8 +116,8 @@ int AudioDecodeThread::audio_decode_frame(FFmpegPlayerCtx *is, double *pts_ptr)
             return -1;
         }
 
-        if (is->flush_actx) {
-            is->flush_actx = false;
+        if (is->flush_audio_ctx) {
+            is->flush_audio_ctx = false;
             ff_log_line("avcodec_flush_buffers(aCodecCtx) for seeking");
             avcodec_flush_buffers(is->aCodecCtx);
             continue;

@@ -1,24 +1,18 @@
-#ifndef VIDEODECODETHREAD_H
-#define VIDEODECODETHREAD_H
+#pragma once
 
 #include "ThreadBase.h"
-
-struct FFmpegPlayerCtx;
-struct AVFrame;
+#include "PlayerCtx.h"
 
 class VideoDecodeThread : public ThreadBase
 {
 public:
-    VideoDecodeThread(FFmpegPlayerCtx *ctx);
+    VideoDecodeThread(PlayerCtx *ctx);
 
     void run();
 
 private:
-    int video_entry();
-    int queue_picture(AVFrame *pFrame, double pts);
+    double synchronize_video(PlayerCtx* playerCtx, AVFrame* src_frame, double pts);
 
 private:
-    FFmpegPlayerCtx *playerCtx = nullptr;
+    PlayerCtx *playerCtx = nullptr;
 };
-
-#endif // VIDEODECODETHREAD_H

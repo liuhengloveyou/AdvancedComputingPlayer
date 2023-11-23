@@ -1,39 +1,47 @@
-#ifndef RENDERVIEW_H
-#define RENDERVIEW_H
+#pragma once
 
 #include <SDL.h>
 #include <list>
 #include <mutex>
 
-using namespace std;
+#include "FFmpegPlayer.h"
 
-struct RenderItem
-{
-    SDL_Texture *texture;
-    SDL_Rect srcRect;
-    SDL_Rect dstRect;
-};
+/*
+#ifdef __cplusplus
+extern "C" {
+#include <libavutil/avassert.h>
+#include <libavutil/channel_layout.h>
+#include <libavutil/opt.h>
+#include <libavutil/mathematics.h>
+#include <libavutil/timestamp.h>
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
+#include <libswscale/swscale.h>
+#include <libswresample/swresample.h>
+#include <libavutil/time.h>
+#include <libavutil/imgutils.h>
+}
+#endif
+*/
 
 class RenderView
 {
 public:
-    explicit RenderView();
+    RenderView();
+    ~RenderView() {};
 
+    int init();
     void setNativeHandle(void *handle);
+    void update(std::shared_ptr<MyPicture> vp);
 
-    int initSDL(SDL_Window** window, SDL_Renderer** renderer);
-
-    RenderItem* createRGB24Texture(int w, int h);
-    void updateTexture(RenderItem*item, unsigned char *pixelData, int rows);
-
-    void onRefresh();
+    SDL_Window* getWindow() { return m_sdlWindow; };
+    SDL_Renderer* getRender() { return m_sdlRender; };
 
 private:
     SDL_Window* m_sdlWindow = nullptr;
     SDL_Renderer* m_sdlRender = nullptr;
-    void* m_nativeHandle = nullptr;
-    std::list<RenderItem *> m_items;
-    mutex m_updateMutex;
-};
+    SDL_Texture* m_sdlTexture = nullptr;
+    // SDL_Rect rect;
 
-#endif // RENDERVIEW_H
+    void* m_nativeHandle = nullptr;
+};

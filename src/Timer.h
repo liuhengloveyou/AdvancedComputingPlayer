@@ -1,5 +1,4 @@
-#ifndef TIMER_H
-#define TIMER_H
+#pragma once
 
 #include "SDL.h"
 
@@ -17,4 +16,3 @@ private:
     SDL_TimerID m_timerId = 0;
 };
 
-#endif // TIMER_H

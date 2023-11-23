@@ -1,23 +1,19 @@
-#ifndef AUDIODECODETHREAD_H
-#define AUDIODECODETHREAD_H
+#pragma once
 
 #include "ThreadBase.h"
-
-struct FFmpegPlayerCtx;
+#include "PlayerCtx.h"
 
 class AudioDecodeThread : public ThreadBase
 {
 public:
-    AudioDecodeThread(FFmpegPlayerCtx *ctx);
+    AudioDecodeThread(PlayerCtx *ctx);
 
     void getAudioData(unsigned char *stream, int len);
     void run();
 
 private:
-    int audio_decode_frame(FFmpegPlayerCtx *is, double *pts_ptr);
+    int audio_decode_frame(PlayerCtx *is, double *pts_ptr);
 
 private:
-    FFmpegPlayerCtx *is = nullptr;
+    PlayerCtx *playerCtx = nullptr;
 };
-
-#endif // AUDIODECODETHREAD_H

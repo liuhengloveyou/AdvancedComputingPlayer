@@ -1,5 +1,4 @@
-#ifndef AUDIOPLAY_H
-#define AUDIOPLAY_H
+#pragma once
 
 #include <SDL.h>
 
@@ -15,5 +14,3 @@ public:
 private:
     SDL_AudioDeviceID m_devId = -1;
 };
-
-#endif // AUDIOPLAY_H

@@ -1,8 +1,6 @@
-#ifndef SDLAPP_H
-#define SDLAPP_H
+#pragma once
 
 #include <map>
-#include <functional>
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,4 +26,3 @@ private:
     std::map<int, std::function<void(SDL_Event*)> > m_userEventMaps;
 };
 
-#endif // SDLAPP_H
