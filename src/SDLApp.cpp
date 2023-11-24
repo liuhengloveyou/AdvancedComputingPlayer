@@ -21,7 +21,12 @@ static SDLApp *globalInstance = nullptr;
 
 SDLApp::SDLApp()
 {
-    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER);
+    // Setup SDL
+    if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO) != 0)
+    {
+        printf("SDL_Init Error: %s\n", SDL_GetError());
+        exit(-1);
+    }
 
     // From 2.0.18: Enable native IME.
 #ifdef SDL_HINT_IME_SHOW_UI
@@ -35,7 +40,7 @@ SDLApp::SDLApp()
     else
     {
         fprintf(stderr, "only one instance allowed\n");
-        exit(1);
+        exit(-1);
     }
 }
 

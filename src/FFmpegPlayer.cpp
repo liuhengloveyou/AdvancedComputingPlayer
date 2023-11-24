@@ -40,11 +40,6 @@ static Uint32 sdl_refresh_timer_cb(Uint32 /*interval*/, void *opaque)
     return 0;
 }
 
-static void schedule_refresh(PlayerCtx *is, int delay)
-{
-    // SDL_AddTimer(delay, sdl_refresh_timer_cb, is);
-}
-
 static void FN_Audio_Cb(void *userdata, Uint8 *stream, int len)
 {
     AudioDecodeThread *dt = (AudioDecodeThread*)userdata;
@@ -61,8 +56,7 @@ void stream_seek(PlayerCtx *is, int64_t pos, int rel)
 }
 
 FFmpegPlayer::FFmpegPlayer(RenderView *render)
-{
-    m_render = render;
+:m_render(render){
 }
 
 FFmpegPlayer::~FFmpegPlayer()
@@ -119,9 +113,9 @@ void FFmpegPlayer::start()
     m_stop = false;
 
     m_demuxThread->start();
-    m_videoDecodeThread->start();
-    m_audioDecodeThread->start();
-    m_audioPlay->start();
+    // m_videoDecodeThread->start();
+    // m_audioDecodeThread->start();
+    // m_audioPlay->start();
 
     // schedule_refresh(&playerCtx, 40);  
 }

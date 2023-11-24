@@ -43,7 +43,23 @@
         "array": "cpp",
         "deque": "cpp",
         "string_view": "cpp",
-        "*.tcc": "cpp"
+        "*.tcc": "cpp",
+        "numeric": "cpp",
+        "ostream": "cpp",
+        "bit": "cpp",
+        "chrono": "cpp",
+        "clocale": "cpp",
+        "condition_variable": "cpp",
+        "cstdarg": "cpp",
+        "cwctype": "cpp",
+        "algorithm": "cpp",
+        "iterator": "cpp",
+        "memory_resource": "cpp",
+        "random": "cpp",
+        "numbers": "cpp",
+        "semaphore": "cpp",
+        "streambuf": "cpp",
+        "cinttypes": "cpp"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }

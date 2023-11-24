@@ -31,7 +31,8 @@ SOURCES = ../src/main.cpp \
 		../src/SDLApp.cpp \
 		../src/ThreadBase.cpp \
 		../src/Timer.cpp \
-		../src/VideoDecodeThread.cpp 
+		../src/VideoDecodeThread.cpp \
+		../src/PlayerCtx.cpp
 SOURCES += $(IMGUI_DIR)/imgui.cpp \
 		$(IMGUI_DIR)/imgui_demo.cpp \
 		$(IMGUI_DIR)/imgui_draw.cpp \
@@ -42,9 +43,9 @@ SOURCES += $(IMGUI_DIR)/backends/imgui_impl_sdl2.cpp \
 OBJS = $(addsuffix .o, $(basename $(notdir $(SOURCES))))
 UNAME_S := $(shell uname -s)
 CPPFLAGS =
-LDFLAGS = -O2 -lembind -lworkerfs.js -lwebsocket.js
-LIBS = -lpthread -L$(FFMPEG_DIR)/lib -lavcodec -lavformat -lavutil -lswscale -lswresample 
-EMS = -std=c++11 
+LDFLAGS = -lpthread
+LIBS = -L$(FFMPEG_DIR)/lib -lavcodec -lavformat -lavutil -lswscale -lswresample 
+EMS = -std=c++11 -O2 -lembind -lworkerfs.js -lwebsocket.js -pthread -sPTHREAD_POOL_SIZE=4
 
 ##---------------------------------------------------------------------
 ## EMSCRIPTEN OPTIONS
@@ -52,8 +53,8 @@ EMS = -std=c++11
 
 # ("EMS" options gets added to both CPPFLAGS and LDFLAGS, whereas some options are for linker only)
 EMS += -s USE_SDL=2
-EMS += -s DISABLE_EXCEPTION_CATCHING=1
-LDFLAGS += -s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s NO_EXIT_RUNTIME=0 -s ASSERTIONS=1
+# EMS += -s DISABLE_EXCEPTION_CATCHING=1
+LDFLAGS += -s ALLOW_MEMORY_GROWTH=1 -s NO_EXIT_RUNTIME=0 -s ASSERTIONS=1 # -s WASM=1
 # -s WASM_WORKERS -s PTHREAD_POOL_SIZE=4
 
 # Uncomment next line to fix possible rendering bugs with Emscripten version older then 1.39.0 (https://github.com/ocornut/imgui/issues/2877)
@@ -80,7 +81,7 @@ endif
 ##---------------------------------------------------------------------
 
 CPPFLAGS += -I. -I../ -I$(IMGUI_DIR) -I$(IMGUI_DIR)/backends -I$(FFMPEG_DIR)/include
-#CPPFLAGS += -g
+# CPPFLAGS += -gsource-map -s ASSERTIONS=2 -s STACK_OVERFLOW_CHECK=1
 CPPFLAGS += -Wall -Wformat -Os $(EMS)
 LDFLAGS += --shell-file ../emscripten/shell_minimal.html
 LDFLAGS += $(EMS)

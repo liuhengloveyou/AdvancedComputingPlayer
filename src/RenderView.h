@@ -30,7 +30,6 @@ public:
     RenderView();
     ~RenderView() {};
 
-    int init();
     void setNativeHandle(void *handle);
     void update(std::shared_ptr<MyPicture> vp);
 
