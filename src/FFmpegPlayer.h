@@ -42,7 +42,7 @@ public:
     void pause(PauseState state);
 
 public:
-    void onRefresh();
+    void refresh();
     void onKeyEvent(SDL_Event *e);
 
 private:

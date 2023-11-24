@@ -23,7 +23,7 @@ RenderView::RenderView()
     else
     {
         SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
-        m_sdlWindow = SDL_CreateWindow(u8"先进计算播放器", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+        m_sdlWindow = SDL_CreateWindow("AdvancedComputingPlayer", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                        SDL_WINDOW_DEFAULT_WIDTH, SDL_WINDOW_DEFAULT_HEIGHT, window_flags);
     }
 

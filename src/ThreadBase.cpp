@@ -1,6 +1,7 @@
 #include "ThreadBase.h"
 #include <pthread.h>
 #include <stdio.h>
+#include <unistd.h>
 
 static void *ThreadEntry(void *arg)
 {
@@ -30,9 +31,10 @@ void ThreadBase::start()
 {
     m_stop = false;
 
+    sleep(10);
+    
 #ifdef __EMSCRIPTEN_PTHREADS__
     pthread_create(&tid, NULL, ThreadEntry, this);
-    printf(">>>>>>>>>>>>>%d\n", tid);
 #else
     if (m_th)
     {

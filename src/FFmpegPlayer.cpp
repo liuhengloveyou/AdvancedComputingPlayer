@@ -113,7 +113,7 @@ void FFmpegPlayer::start()
     m_stop = false;
 
     m_demuxThread->start();
-    // m_videoDecodeThread->start();
+    m_videoDecodeThread->start();
     // m_audioDecodeThread->start();
     // m_audioPlay->start();
 
@@ -169,18 +169,22 @@ void FFmpegPlayer::pause(PauseState state)
     playerCtx.frame_timer = av_gettime() / 1000000.0;
 }
 
-void FFmpegPlayer::onRefresh()
+void FFmpegPlayer::refresh()
 {
     if (m_stop) {
         return;
     }
 
     double actual_delay, delay, sync_threshold, ref_clock, diff;
-   
+   printf("refreshrefreshrefresh\n\n");
+    return;
+
     std::shared_ptr<MyPicture> vp = playerCtx.getPicture();
     if (!vp) {
         return;
     }
+
+    
 
     delay = vp->pts_ - playerCtx.frame_last_pts;
     
@@ -210,7 +214,7 @@ void FFmpegPlayer::onRefresh()
         actual_delay = 0.010;
     }
     
-    m_render->update(vp);
+    // m_render->update(vp);
 }
 
 void FFmpegPlayer::onKeyEvent(SDL_Event *e)

@@ -56,7 +56,7 @@ int main(int, char **)
 
     SDLApp *app = new SDLApp();
     RenderView *view = new RenderView();
-    FFmpegPlayer *player = new FFmpegPlayer(view);
+    FFmpegPlayer player = new FFmpegPlayer(view);
     if (player->init(fn) != 0) {
         return -1;
     }
@@ -128,6 +128,30 @@ int main(int, char **)
             if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(window))
                 done = true;
         }
+
+        
+        // player->refresh();
+
+ 
+        static SDL_Point points[4] = {
+            {320, 200},
+            {300, 240},
+            {340, 240},
+            {320, 200}
+        };
+        SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
+        SDL_RenderDrawLines(renderer, points, 4);
+
+        static SDL_Point points2[4] = {
+            {320 - 80, 200},
+            {300 - 80, 240},
+            {340 - 80, 240},
+            {320 - 80, 200}
+        };
+        SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
+        SDL_RenderDrawLines(renderer, points2, 4);
+        
+
 
         // Start the Dear ImGui frame
         ImGui_ImplSDLRenderer2_NewFrame();

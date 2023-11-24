@@ -62,6 +62,7 @@ void VideoDecodeThread::run()
             }
             pts *= av_q2d(playerCtx->video_st->time_base);
 
+            printf("~~~~~~~~~~~~~~~~~~~~~\n\n");
             // frame ready
             if (ret == 0) {
                 pts = synchronize_video(playerCtx, pFrame, pts);
@@ -71,7 +72,7 @@ void VideoDecodeThread::run()
         }
     }
 
-    //av_frame_free(&pFrame); // ÓÃÍêÔÙfree
+    //av_frame_free(&pFrame); // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½free
     av_packet_free(&packet);
 
     return;

@@ -45,7 +45,7 @@ UNAME_S := $(shell uname -s)
 CPPFLAGS =
 LDFLAGS = -lpthread
 LIBS = -L$(FFMPEG_DIR)/lib -lavcodec -lavformat -lavutil -lswscale -lswresample 
-EMS = -std=c++11 -O2 -lembind -lworkerfs.js -lwebsocket.js -pthread -sPTHREAD_POOL_SIZE=4
+EMS = -std=c++11 -O2 -lembind -lworkerfs.js -lwebsocket.js -pthread -sPTHREAD_POOL_SIZE=16
 
 ##---------------------------------------------------------------------
 ## EMSCRIPTEN OPTIONS
