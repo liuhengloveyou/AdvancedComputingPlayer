@@ -133,6 +133,15 @@ int DemuxThread::stream_open(int media_type)
     codecCtx = avcodec_alloc_context3(codec);
     avcodec_parameters_to_context(codecCtx, formatCtx->streams[stream_index]->codecpar);
 
+    // set codec to automatically determine how many threads suits best for the decoding job
+    codecCtx->thread_count = 0;
+    if (codec->capabilities | AV_CODEC_CAP_FRAME_THREADS)
+        codecCtx->thread_type = FF_THREAD_FRAME;
+    else if (codec->capabilities | AV_CODEC_CAP_SLICE_THREADS)
+        codecCtx->thread_type = FF_THREAD_SLICE;
+    else
+        codecCtx->thread_count = 1; //don't use multithreading
+
     if (avcodec_open2(codecCtx, codec, NULL) < 0) {
         ff_log_line("Failed to open codec for stream #%d\n", stream_index);
         return -1;

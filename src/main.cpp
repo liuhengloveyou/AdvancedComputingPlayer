@@ -56,15 +56,6 @@ int main(int argc, char **argv)
     RenderView view;
     view.init();
 
-    /*
-    Timer ti;
-    std::function<void()> cb = bind(&RenderView::onRefresh, &view);
-    ti.start(&cb, 30);
-
-    //RenderPairData *cbData = new RenderPairData;
-    //cbData->view = &view;
-    */
-
     FFmpegPlayer player(&view);
     if (player.init(fn) != 0) {
         return -1;
@@ -139,7 +130,7 @@ int main(int argc, char **argv)
             done = true;
         }
         
-        //player.onRefresh();
+        player.onRefresh();
 
         /*
         static SDL_Point points[4] = {
